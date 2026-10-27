@@ -1,5 +1,5 @@
 trigger:
-  - main # Se dispara automáticamente al hacer push a la rama master
+  - main
  
 pool:
   vmImage: 'windows-2022'
@@ -9,54 +9,54 @@ variables:
   dotnetVersion: '8.0.x'
  
 stages:
-# 1. ETAPA DE COMPILACIÓN (CI)
-- stage: Build
-  displayName: 'Compilación y Publicación'
-  jobs:
-  - job: BuildJob
-    steps:
-    - task: UseDotNet@2
-      displayName: 'Instalar SDK de .NET'
-      inputs:
-        packageType: 'sdk'
-        version: '$(dotnetVersion)'
+  # 1. ETAPA DE COMPILACIÓN (CI)
+  - stage: Build
+    displayName: 'Compilación y Publicación'
+    jobs:
+      - job: BuildJob
+        steps:
+          - task: UseDotNet@2
+            displayName: 'Instalar SDK de .NET'
+            inputs:
+              packageType: 'sdk'
+              version: '$(dotnetVersion)'
  
-    - task: DotNetCoreCLI@2
-      displayName: 'Publicar Proyecto Web'
-      inputs:
-        command: 'publish'
-        publishWebProjects: false
-        projects: '**/veterinariweb.csproj'
-        arguments: '--configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)'
-        zipAfterPublish: true
+          - task: DotNetCoreCLI@2
+            displayName: 'Publicar Proyecto Web'
+            inputs:
+              command: 'publish'
+              publishWebProjects: false
+              projects: '**/veterinariweb.csproj'
+              arguments: '--configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)'
+              zipAfterPublish: true
  
-    - task: PublishBuildArtifacts@1
-      displayName: 'Publicar Artefactos'
-      inputs:
-        PathtoPublish: '$(Build.ArtifactStagingDirectory)'
-        ArtifactName: 'drop'
-        publishLocation: 'Container'
+          - task: PublishBuildArtifacts@1
+            displayName: 'Publicar Artefactos'
+            inputs:
+              PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+              ArtifactName: 'drop'
+              publishLocation: 'Container'
  
-# 2. ETAPA DE DESPLIEGUE (CD)
-- stage: Deploy
-  displayName: 'Despliegue a Azure App Service'
-  dependsOn: Build
-  condition: succeeded()
-  jobs:
-  - job: DeployJob
-    steps:
-    - task: DownloadBuildArtifacts@0
-      displayName: 'Descargar Artefactos'
-      inputs:
-        buildType: 'current'
-        downloadType: 'single'
-        artifactName: 'drop'
-        downloadPath: '$(System.ArtifactsDirectory)'
+  # 2. ETAPA DE DESPLIEGUE (CD)
+  - stage: Deploy
+    displayName: 'Despliegue a Azure App Service'
+    dependsOn: Build
+    condition: succeeded()
+    jobs:
+      - job: DeployJob
+        steps:
+          - task: DownloadBuildArtifacts@0
+            displayName: 'Descargar Artefactos'
+            inputs:
+              buildType: 'current'
+              downloadType: 'single'
+              artifactName: 'drop'
+              downloadPath: '$(System.ArtifactsDirectory)'
  
-    - task: AzureWebApp@1
-      displayName: 'Desplegar en Azure App Service'
-      inputs:
-        azureSubscription: 'ConecctionAPI'
-        appType: 'webApp'
-        appName: 'Api-Final'
-        package: '$(System.ArtifactsDirectory)/drop/*.zip'
+          - task: AzureWebApp@1
+            displayName: 'Desplegar en Azure App Service'
+            inputs:
+              azureSubscription: 'ConecctionAPI'
+              appType: 'webApp'
+              appName: 'Api-Final'
+              package: '$(System.ArtifactsDirectory)/drop/*.zip'
