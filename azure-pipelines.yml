@@ -6,7 +6,7 @@ pool:
  
 variables:
   buildConfiguration: 'Release'
-  dotnetVersion: '9.0.306'
+  dotnetVersion: '8.0.x'
  
 stages:
 # 1. ETAPA DE COMPILACIÓN (CI)
