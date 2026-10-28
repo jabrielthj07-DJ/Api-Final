@@ -12,7 +12,9 @@ namespace Capa_Negocio
 
         public Compra_Negocio(IConfiguration configuration)
         {
-            string connectionString = configuration.GetConnectionString("Connection");
+
+            // all screens
+            string connectionString = (configuration.GetConnectionString("Connection") ?? configuration.GetConnectionString("DefaultConnection"));
 
             _CompraDatos = new CompraDato(configuration);
         }

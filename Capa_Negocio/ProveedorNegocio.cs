@@ -12,8 +12,10 @@ namespace Capa_Negocio
 
         public ProveedorNegocio(IConfiguration configuration)
         {
-            string connectionString = configuration.GetConnectionString("Connection");
-            _proveedorDato = new ProveedorDato(configuration); ; // inicialización
+            // all screens
+            string connectionString = (configuration.GetConnectionString("Connection") ?? configuration.GetConnectionString("DefaultConnection"));
+
+            _proveedorDato = new ProveedorDato(configuration);
 
         }
 

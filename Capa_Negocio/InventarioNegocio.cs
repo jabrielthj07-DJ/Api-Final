@@ -9,9 +9,11 @@ namespace Capa_Negocio
         private readonly InventarioDato _inventarioDato;
 
         public InventarioNegocio(IConfiguration configuration)
-        {
-            string connectionString = configuration.GetConnectionString("Connection");
-            _inventarioDato = new InventarioDato(configuration); ; // inicialización
+        {    
+           // all screens
+            string connectionString = (configuration.GetConnectionString("Connection") ?? configuration.GetConnectionString("DefaultConnection"));
+
+            _inventarioDato = new InventarioDato(configuration);
 
         }
 

@@ -12,8 +12,11 @@ namespace Capa_Negocio
 
         public Venta_Negocio(IConfiguration configuration)
         {
-            string connectionString = configuration.GetConnectionString("Connection");
-            _VentaDatos = new VentaDatos(configuration); ; // inicialización
+
+            // all screens
+            string connectionString = (configuration.GetConnectionString("Connection") ?? configuration.GetConnectionString("DefaultConnection"));
+
+            _VentaDatos = new VentaDatos(configuration);
 
         }
 

@@ -15,8 +15,11 @@ namespace Capa_Negocio
 
         public UsuarioNegocio(IConfiguration configuration)
         {
-            string connectionString = configuration.GetConnectionString("Connection");
-            _usuarioDato = new UsuarioDato(configuration); ; // inicialización
+          
+            // all screens
+            string connectionString = (configuration.GetConnectionString("Connection") ?? configuration.GetConnectionString("DefaultConnection"));
+
+            _usuarioDato = new UsuarioDato(configuration);
 
         }
 

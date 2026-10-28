@@ -11,8 +11,10 @@ namespace Capa_Negocio
 
         public Rol_Negocio(IConfiguration configuration)
         {
-            string connectionString = configuration.GetConnectionString("Connection");
-            _rolDato = new RolDatos(configuration); ; // inicialización
+            // all screens
+            string connectionString = (configuration.GetConnectionString("Connection") ?? configuration.GetConnectionString("DefaultConnection"));
+
+            _rolDato = new RolDatos(configuration);
 
         }
 
