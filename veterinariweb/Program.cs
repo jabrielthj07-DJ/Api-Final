@@ -2,9 +2,9 @@ using Capa_Datos;
 using Capa_Entidades;
 using Capa_Negocio;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Security.Claims;
@@ -12,10 +12,7 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ===============================
-// CONEXIÓN A BASE DE DATOS
-// ===============================
-
+// Conexión a la base de datos
 builder.Services.AddDbContext<MiDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
@@ -32,7 +29,7 @@ builder.Services.AddSingleton<IConfiguration>(builder.Configuration);
 builder.Services.AddScoped<ProductoDatos>(sp =>
 {
     var configuration = sp.GetRequiredService<IConfiguration>();
-    return new ProductoDatos(configuration);
+return new ProductoDatos(configuration);
 });
 
 builder.Services.AddScoped<ProductoNegocio>();
@@ -45,28 +42,9 @@ builder.Services.AddScoped<InventarioNegocio>();
 builder.Services.AddScoped<ProveedorNegocio>();
 
 
-builder.Services.AddControllers();
-
-
-// ===============================
-// CORS
-// ===============================
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("PermitirTodo",
-        policy =>
-        {
-            policy.AllowAnyOrigin()
-                  .AllowAnyHeader()
-                  .AllowAnyMethod();
-        });
-});
-
-
-// ===============================
-// JWT
-// ===============================
-var jwtSettings = builder.Configuration.GetSection("Jwt");
+// Configuración segura de JWT
+var jwtKey = builder.Configuration["Jwt:Key"] ?? "ClaveSecretaSuperSeguraVeterinariaML2026!Key";
+var keyBytes = Encoding.UTF8.GetBytes(jwtKey);
 
 builder.Services.AddAuthentication(options =>
 {
@@ -81,37 +59,28 @@ builder.Services.AddAuthentication(options =>
         ValidateAudience = true,
         ValidateLifetime = true,
         ValidateIssuerSigningKey = true,
-
-        ValidIssuer = builder.Configuration["Jwt:Issuer"],
-        ValidAudience = builder.Configuration["Jwt:Audience"],
-
-        IssuerSigningKey = new SymmetricSecurityKey(
-            Encoding.UTF8.GetBytes("MiClaveMuySegura1234567890123456")
-        ),
-
+        ValidIssuer = builder.Configuration["Jwt:Issuer"] ?? "miApp",
+        ValidAudience = builder.Configuration["Jwt:Audience"] ?? "miAppUsuarios",
+        IssuerSigningKey = new SymmetricSecurityKey(keyBytes),
         RoleClaimType = ClaimTypes.Role
     };
 
-
     options.Events = new JwtBearerEvents
     {
-        // ERROR 401
         OnChallenge = context =>
         {
             context.HandleResponse();
-
             context.Response.StatusCode = 401;
             context.Response.ContentType = "application/json";
 
             var result = System.Text.Json.JsonSerializer.Serialize(new
             {
-                mensaje = "Acceso no autorizado. Debe iniciar sesión y proporcionar un token válido."
+                mensaje = "Acceso no autorizado. Por favor, inicie sesión y proporcione un token válido (Bearer)."
             });
 
             return context.Response.WriteAsync(result);
         },
 
-        // ERROR 403
         OnForbidden = context =>
         {
             context.Response.StatusCode = 403;
@@ -119,7 +88,7 @@ builder.Services.AddAuthentication(options =>
 
             var result = System.Text.Json.JsonSerializer.Serialize(new
             {
-                mensaje = "Acceso denegado. No tiene permisos para acceder."
+                mensaje = "Acceso denegado. Solo los administradores tienen permiso para este recurso."
             });
 
             return context.Response.WriteAsync(result);
@@ -127,19 +96,17 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
-
-// ===============================
-// SWAGGER
-// ===============================
+// Servicios de API
+builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 
+// Configuración de Swagger
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo
     {
         Title = "Veterinaria M&L",
         Version = "v1",
-
         Contact = new OpenApiContact
         {
             Name = "Soporte Tecnico",
@@ -147,14 +114,9 @@ builder.Services.AddSwaggerGen(c =>
         }
     });
 
-    // ===========================
-    // ORDENAR CONTROLADORES
-    // ===========================
     c.OrderActionsBy(apiDesc =>
     {
-        var controller =
-            (apiDesc.ActionDescriptor as ControllerActionDescriptor)
-            ?.ControllerName ?? "";
+        var controller = (apiDesc.ActionDescriptor as ControllerActionDescriptor)?.ControllerName ?? "";
 
         if (controller == "Login") return "1_Login";
         if (controller == "Rol") return "2_Rol";
@@ -165,75 +127,67 @@ builder.Services.AddSwaggerGen(c =>
         if (controller == "Inventario") return "7_Inventario";
         if (controller == "Compras") return "8_Compras";
         if (controller == "Proveedor") return "9_Proveedor";
-
         return "99_" + controller;
     });
 
-    // ========================
-    // JWT EN SWAGGER
-    // ========================
-    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    c.AddSecurityDefinition("Bearer", new()
     {
         Name = "Authorization",
         Type = SecuritySchemeType.Http,
-        Scheme = "bearer",
+        Scheme = "Bearer",
         BearerFormat = "JWT",
         In = ParameterLocation.Header,
-        Description = "Ingrese el token JWT con formato: Bearer {token}"
+        Description = "Ingresa el token JWT con el formato: Bearer {token}"
     });
 
-    c.AddSecurityRequirement(new OpenApiSecurityRequirement
+    c.AddSecurityRequirement(new()
     {
         {
             new OpenApiSecurityScheme
             {
-                Reference = new OpenApiReference
-                {
-                    Type = ReferenceType.SecurityScheme,
-                    Id = "Bearer"
-                }
+                Reference = new() { Type = ReferenceType.SecurityScheme, Id = "Bearer" }
             },
             Array.Empty<string>()
         }
     });
 
-    // XML COMMENTS
-    var xmlFile =
-        $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
-
+    // Carga segura del XML (Evita crash 500.30 si el XML no se incluyó en la publicación)
+    var xmlFile = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
     var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+    if (File.Exists(xmlPath))
+    {
+        c.IncludeXmlComments(xmlPath, includeControllerXmlComments: true);
+    }
 
-    c.IncludeXmlComments(xmlPath, true);
-
-    // HABILITAR ANOTACIONES
     c.EnableAnnotations();
 });
 
+// Configuración de CORS
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("NuevaPolitica",
+        policy =>
+        {
+            policy.AllowAnyOrigin()
+                  .AllowAnyHeader()
+                  .AllowAnyMethod();
+        });
+});
 
-// ===============================
-// CONSTRUIR APP
-// ===============================
 var app = builder.Build();
 
-// ===============================
-//CARGAR MIGRACIONES AL EJECUTARSE UNA VEZ
-// ===============================
-
-
-
-// ===============================
-// MIDDLEWARES
-// ===============================
-app.UseSwagger();
-
-app.UseSwaggerUI();
-
 app.UseHttpsRedirection();
+app.UseCors("NuevaPolitica");
 
-app.UseCors("PermitirTodo");
+// Habilitar Swagger siempre en Azure / Producción
+app.UseSwagger();
+app.UseSwaggerUI(c =>
+{
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "Veterinaria M&L v1");
+    c.RoutePrefix = string.Empty; // Carga Swagger directamente al abrir la URL principal
+});
 
 app.UseAuthentication();
-
 app.UseAuthorization();
 
 app.MapControllers();
