@@ -12,8 +12,10 @@ namespace Capa_Negocio
 
         public CategoriaNegocio(IConfiguration configuration)
         {
-            string connectionString = configuration.GetConnectionString("Connection");
-            _categoriaDato = new CategoriaDato(configuration); ; // inicialización
+            // all screens
+            string connectionString = (configuration.GetConnectionString("Connection") ?? configuration.GetConnectionString("DefaultConnection"));
+
+            _categoriaDato = new CategoriaDato(configuration);
 
         }
 

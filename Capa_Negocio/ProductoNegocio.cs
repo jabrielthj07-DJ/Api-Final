@@ -13,8 +13,11 @@ namespace Capa_Negocio
 
         public ProductoNegocio(IConfiguration configuration)
         {
-            string connectionString = configuration.GetConnectionString("Connection");
-            _productoDato = new ProductoDatos(configuration); ; // inicialización
+
+            // all screens
+            string connectionString = (configuration.GetConnectionString("Connection") ?? configuration.GetConnectionString("DefaultConnection"));
+
+            _productoDato = new ProductoDatos(configuration);
 
         }
 

@@ -15,10 +15,9 @@ var builder = WebApplication.CreateBuilder(args);
 // ===============================
 // CONEXIÓN A BASE DE DATOS
 // ===============================
+
 builder.Services.AddDbContext<MiDbContext>(options =>
-    options.UseSqlServer(
-        builder.Configuration.GetConnectionString("Connection")
-    ));
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 
 // ===============================
