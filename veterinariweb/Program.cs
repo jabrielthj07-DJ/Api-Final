@@ -15,9 +15,11 @@ var builder = WebApplication.CreateBuilder(args);
 // ===============================
 // CONEXIÓN A BASE DE DATOS
 // ===============================
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+                       ?? builder.Configuration.GetConnectionString("Connection");
 
 builder.Services.AddDbContext<MiDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseSqlServer(connectionString));
 
 
 // ===============================
@@ -44,7 +46,6 @@ builder.Services.AddScoped<CategoriaNegocio>();
 builder.Services.AddScoped<InventarioNegocio>();
 builder.Services.AddScoped<ProveedorNegocio>();
 
-
 builder.Services.AddControllers();
 
 
@@ -53,20 +54,21 @@ builder.Services.AddControllers();
 // ===============================
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("PermitirTodo",
-        policy =>
-        {
-            policy.AllowAnyOrigin()
-                  .AllowAnyHeader()
-                  .AllowAnyMethod();
-        });
+    options.AddPolicy("PermitirTodo", policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyHeader()
+              .AllowAnyMethod();
+    });
 });
 
 
 // ===============================
 // JWT
 // ===============================
-var jwtSettings = builder.Configuration.GetSection("Jwt");
+var jwtKey = builder.Configuration["Jwt:Key"] ?? "MiClaveMuySegura1234567890123456";
+var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "miApp";
+var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "miAppUsuarios";
 
 builder.Services.AddAuthentication(options =>
 {
@@ -82,16 +84,15 @@ builder.Services.AddAuthentication(options =>
         ValidateLifetime = true,
         ValidateIssuerSigningKey = true,
 
-        ValidIssuer = builder.Configuration["Jwt:Issuer"],
-        ValidAudience = builder.Configuration["Jwt:Audience"],
+        ValidIssuer = jwtIssuer,
+        ValidAudience = jwtAudience,
 
         IssuerSigningKey = new SymmetricSecurityKey(
-            Encoding.UTF8.GetBytes("MiClaveMuySegura1234567890123456")
+            Encoding.UTF8.GetBytes(jwtKey)
         ),
 
         RoleClaimType = ClaimTypes.Role
     };
-
 
     options.Events = new JwtBearerEvents
     {
@@ -99,7 +100,6 @@ builder.Services.AddAuthentication(options =>
         OnChallenge = context =>
         {
             context.HandleResponse();
-
             context.Response.StatusCode = 401;
             context.Response.ContentType = "application/json";
 
@@ -139,7 +139,6 @@ builder.Services.AddSwaggerGen(c =>
     {
         Title = "Veterinaria M&L",
         Version = "v1",
-
         Contact = new OpenApiContact
         {
             Name = "Soporte Tecnico",
@@ -147,9 +146,7 @@ builder.Services.AddSwaggerGen(c =>
         }
     });
 
-    // ===========================
     // ORDENAR CONTROLADORES
-    // ===========================
     c.OrderActionsBy(apiDesc =>
     {
         var controller =
@@ -169,9 +166,7 @@ builder.Services.AddSwaggerGen(c =>
         return "99_" + controller;
     });
 
-    // ========================
     // JWT EN SWAGGER
-    // ========================
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Name = "Authorization",
@@ -197,15 +192,14 @@ builder.Services.AddSwaggerGen(c =>
         }
     });
 
-    // XML COMMENTS
-    var xmlFile =
-        $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
-
+    // XML COMMENTS (Verifica si el archivo existe para no tumbar la app en Azure)
+    var xmlFile = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
     var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+    if (File.Exists(xmlPath))
+    {
+        c.IncludeXmlComments(xmlPath, true);
+    }
 
-    c.IncludeXmlComments(xmlPath, true);
-
-    // HABILITAR ANOTACIONES
     c.EnableAnnotations();
 });
 
@@ -215,17 +209,13 @@ builder.Services.AddSwaggerGen(c =>
 // ===============================
 var app = builder.Build();
 
-// ===============================
-//CARGAR MIGRACIONES AL EJECUTARSE UNA VEZ
-// ===============================
-
-
+// Mostrar detalles de errores si algo falla durante pruebas
+app.UseDeveloperExceptionPage();
 
 // ===============================
 // MIDDLEWARES
 // ===============================
 app.UseSwagger();
-
 app.UseSwaggerUI();
 
 app.UseHttpsRedirection();
@@ -233,7 +223,6 @@ app.UseHttpsRedirection();
 app.UseCors("PermitirTodo");
 
 app.UseAuthentication();
-
 app.UseAuthorization();
 
 app.MapControllers();
