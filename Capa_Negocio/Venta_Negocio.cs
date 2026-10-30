@@ -12,12 +12,7 @@ namespace Capa_Negocio
 
         public Venta_Negocio(IConfiguration configuration)
         {
-
-            // all screens
-            string connectionString = (configuration.GetConnectionString("Connection") ?? configuration.GetConnectionString("DefaultConnection"));
-
             _VentaDatos = new VentaDatos(configuration);
-
         }
 
         public IEnumerable<Ventas> GetVentasConDetalles()

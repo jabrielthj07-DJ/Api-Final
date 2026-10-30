@@ -12,7 +12,13 @@ namespace Capa_Datos
 
         public VentaDatos(IConfiguration configuration)
         {
-            _connectionString = configuration.GetConnectionString("Connection");
+            // MODIFICADO
+            _connectionString =
+                configuration.GetConnectionString("DefaultConnection")
+                ?? configuration.GetConnectionString("Connection")
+                ?? throw new InvalidOperationException(
+                    "No se encontró la cadena de conexión de Ventas."
+                );
         }
 
         // Conexión
