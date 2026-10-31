@@ -1,3 +1,9 @@
+// Mongo DB
+using veterinariweb.Models;
+using veterinariweb.Service.MongoDB;
+
+
+
 using Capa_Datos;
 using Capa_Entidades;
 using Capa_Negocio;
@@ -46,7 +52,19 @@ builder.Services.AddScoped<CategoriaNegocio>();
 builder.Services.AddScoped<InventarioNegocio>();
 builder.Services.AddScoped<ProveedorNegocio>();
 
+//  configuración MongoDB
+builder.Services.Configure<MongoDBSettings>(
+    builder.Configuration.GetSection(MongoDBSettings.SectionName));
+
+// conexión MongoDB como Singleton
+builder.Services.AddSingleton<MongoDBService>();
+
+// servicio de ticket promedio
+builder.Services.AddScoped<TicketPromedioService>();
+
 builder.Services.AddControllers();
+
+
 
 
 // ===============================
