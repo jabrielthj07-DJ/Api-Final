@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Options;
+﻿using System;
+using Microsoft.Extensions.Options;
 using MongoDB.Bson;
 using MongoDB.Driver;
 using veterinariweb.Models;
@@ -30,8 +31,9 @@ namespace veterinariweb.Service.MongoDB
 
                 return true;
             }
-            catch
+            catch (Exception ex)
             {
+                Console.WriteLine($"Error MongoDB: {ex.Message}");
                 return false;
             }
         }
